@@ -76,7 +76,7 @@ namespace libVT100
         BackgroundNormalCyan = 46,
         BackgroundNormalWhite = 47,
         /// Next arguments are 5;n or 2;r;g;b, see colors
-        BackgroundColor = 38,
+        BackgroundColor = 48,
         BackgroundNormalReset = 49,
         /// Set foreground color, high intensity (aixtem)
         ForegroundBrightBlack = 90,
