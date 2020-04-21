@@ -40,6 +40,7 @@ namespace libVT100
             BrightMagenta,
             BrightCyan,
             BrightWhite,
+            rgb
         }
         
         public struct GraphicAttributes
@@ -52,7 +53,9 @@ namespace libVT100
             private bool m_conceal;
             private TextColor m_foreground;
             private TextColor m_background;
-            
+            private Color m_foregroundRgb;
+            private Color m_backgroundRgb;
+
             public bool Bold
             {
                 get
@@ -153,7 +156,15 @@ namespace libVT100
             {
                 get
                 {
-                    return TextColorToColor ( Foreground );
+                    if (Foreground == TextColor.rgb)
+                        return m_foregroundRgb;
+                    else
+                        return TextColorToColor ( Foreground );
+                }
+                set
+                {
+                    Foreground = TextColor.rgb;
+                    m_foregroundRgb = value;
                 }
             }
             
@@ -161,10 +172,18 @@ namespace libVT100
             {
                 get
                 {
-                    return TextColorToColor ( Background );
+                    if (Background == TextColor.rgb)
+                        return m_backgroundRgb;
+                    else
+                        return TextColorToColor(Background);
+                }
+                set
+                {
+                    Background = TextColor.rgb;
+                    m_backgroundRgb = value;
                 }
             }
-            
+
             public Color TextColorToColor ( TextColor _textColor )
             {
                 switch ( _textColor )
@@ -216,6 +235,8 @@ namespace libVT100
                 m_conceal = false;
                 m_foreground = TextColor.White;
                 m_background = TextColor.Black;
+                m_foregroundRgb = Color.White;
+                m_backgroundRgb = Color.Black;
             }
         }
         
@@ -658,9 +679,10 @@ namespace libVT100
 
         void IAnsiDecoderClient.SetGraphicRendition ( IAnsiDecoder _sender, GraphicRendition[] _commands )
         {
-            foreach ( GraphicRendition command in _commands )
+            //foreach ( GraphicRendition command in _commands )
+            for (var i = 0; i < _commands.Length; i++)
             {
-                switch ( command )
+                switch (_commands[i])
                 {
                 case GraphicRendition.Reset:
                     m_currentAttributes.Reset ();
@@ -822,8 +844,15 @@ namespace libVT100
                     m_currentAttributes.Background = TextColor.Black;
                     break;
 
-                 case GraphicRendition.Font1:
+                case GraphicRendition.Font1:
                     break;
+
+                case GraphicRendition.ForegroundColor:
+                        /// Next arguments are 5;n or 2;r;g;b, see colors
+                        /// _commands is [38, 2, r, g, b, ...] 
+                        m_currentAttributes.ForegroundColor = Color.FromArgb((int)_commands[2], (int)_commands[3], (int)_commands[4]);
+                        i += 4;
+                break;
                       
                 default:
                       
