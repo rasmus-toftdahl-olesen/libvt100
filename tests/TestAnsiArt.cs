@@ -14,22 +14,22 @@ namespace libVT100.Tests
         [Test]
         public void TestWendy ()
         {
-           ReadAndRenderFile ( "../tests/70-twilight.ans", Encoding.GetEncoding ( "ibm437"), new Size(80, 80) );
-           ReadAndRenderFile ( "../tests/n4-wendy.ans", Encoding.GetEncoding ( "ibm437"), new Size(80, 80)  );
-           ReadAndRenderFile( "../tests/zv-v01d.ans", Encoding.GetEncoding( "ibm437" ), new Size( 80, 180 ) );
+           ReadAndRenderFile ( "tests/70-twilight.ans", Encoding.GetEncoding ( "ibm437"), new Size(80, 80) );
+           ReadAndRenderFile ( "tests/n4-wendy.ans", Encoding.GetEncoding ( "ibm437"), new Size(80, 80)  );
+           ReadAndRenderFile( "tests/zv-v01d.ans", Encoding.GetEncoding( "ibm437" ), new Size( 80, 180 ) );
         }
         
         [Test]
         public void TestSimpleTxt ()
         {
-            System.Console.Write ( ReadAndRenderFile ( "../tests/simple.txt", Encoding.UTF8, new Size(50, 6) ).ToString() );
+            System.Console.Write ( ReadAndRenderFile ( "tests/simple.txt", Encoding.UTF8, new Size(50, 6) ).ToString() );
         }
         
         [Test]
         public void TestUnixProgramOutput ()
         {
-           ReadAndRenderFile ( "../tests/mc.output", Encoding.UTF8, new Size(180, 65) );
-           ReadAndRenderFile ( "../tests/ls.output", Encoding.UTF8, new Size(65, 10) );
+           ReadAndRenderFile ( "tests/mc.output", Encoding.UTF8, new Size(180, 65) );
+           ReadAndRenderFile ( "tests/ls.output", Encoding.UTF8, new Size(65, 10) );
         }
         
         public void ReadAndRenderFileAll ( string _filename, Size _size )
@@ -64,7 +64,7 @@ namespace libVT100.Tests
             }
             //System.Console.Write ( screen.ToString() );
             Bitmap bitmap = screen.ToBitmap ( new Font("Courier New", 6) );
-            bitmap.Save ( "..\\build\\" + Path.GetFileNameWithoutExtension(_filename) + "_" + _encoding.EncodingName + ".png", System.Drawing.Imaging.ImageFormat.Png );
+            bitmap.Save ( "build\\" + Path.GetFileNameWithoutExtension(_filename) + "_" + _encoding.EncodingName + ".png", System.Drawing.Imaging.ImageFormat.Png );
 
             /*
               foreach ( Screen.Character ch in screen )
