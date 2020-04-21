@@ -1,14 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
-    <IntermediateOutputPath>..\build\$(Configuration)\libvt100\</IntermediateOutputPath>
-    <BaseIntermediateOutputPath>..\build\$(Configuration)\libvt100\</BaseIntermediateOutputPath>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <UseWindowsForms>true</UseWindowsForms>
     <OutputType>Library</OutputType>
     <OldToolsVersion>2.0</OldToolsVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <OutputPath>..\build\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.Windows.Forms" />
+    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
   </ItemGroup>
 </Project>
