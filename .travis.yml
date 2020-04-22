@@ -9,5 +9,6 @@ jobs:
     - mono: latest
 
 script:
-  - dotnet build
-  - dotnet test
+  - dotnet build libvt100_ci.sln
+  - dotnet test libvt100_ci.sln
+  
