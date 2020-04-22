@@ -4,7 +4,7 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace libVT100
+namespace libvt100
 {
     public class Screen : IAnsiDecoderClient, IEnumerable<Screen.Character>
     {

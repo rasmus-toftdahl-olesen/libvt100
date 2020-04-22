@@ -3,9 +3,9 @@ using System.Text;
 using System.Collections.Generic;
 using System.Drawing;
 using NUnit.Framework;
-using libVT100;
+using libvt100;
 
-namespace libVT100.Tests
+namespace libvt100.Tests
 {
     [TestFixture]
     public class TestEscapeCharacterDecoder : EscapeCharacterDecoder

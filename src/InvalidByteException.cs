@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace libVT100
+namespace libvt100
 {
    [global::System.Serializable]
    public class InvalidByteException : Exception

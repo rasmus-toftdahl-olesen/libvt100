@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
 
-namespace libVT100
+namespace libvt100
 {
     public class AnsiDecoderClient : IAnsiDecoderClient
     {

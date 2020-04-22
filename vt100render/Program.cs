@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Drawing;
-using libVT100;
+using libvt100;
 
 namespace vt100render
 {

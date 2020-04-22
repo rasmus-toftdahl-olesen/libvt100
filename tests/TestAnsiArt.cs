@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using NUnit.Framework;
-using libVT100;
+using libvt100;
 
-namespace libVT100.Tests
+namespace libvt100.Tests
 {
     [TestFixture]
     public class TestAnsiArt
