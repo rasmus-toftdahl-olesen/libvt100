@@ -7,4 +7,7 @@ jobs:
       mono: none
       env: DOTNETCORE=3  # optional, can be used to take different code paths in your script
     - mono: latest
-    
+
+script:
+  - dotnet build
+  - dotnet test
