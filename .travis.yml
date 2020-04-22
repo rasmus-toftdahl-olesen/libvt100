@@ -1,5 +1,5 @@
 language: csharp
-solution: libvt100.sln
+solution: libvt100_ci.sln
 
 jobs:
   include:
