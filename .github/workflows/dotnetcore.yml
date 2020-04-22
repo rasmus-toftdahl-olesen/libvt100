@@ -18,8 +18,9 @@ jobs:
       with:
         dotnet-version: 3.1.101
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore libvt100_ci.sln
     - name: Build
       run: dotnet build --configuration Release --no-restore libvt100_ci.sln
     - name: Test
       run: dotnet test --no-restore --verbosity normal libvt100_ci.sln
+
