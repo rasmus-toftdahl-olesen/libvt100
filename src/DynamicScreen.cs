@@ -171,19 +171,20 @@ namespace libvt100
         /// <summary>
         /// All of the lines in the doc (wrapped).
         /// </summary>
-        public List<Line> Lines { get; set; } = new List<Line>();
+        public List<Line> Lines { get; set; } = new List<Line>() { new Line() { LineNumber = 1 } };
 
         /// <summary>
         /// Number of lines with line #s in document
         /// </summary>
-        public int NumLines { get; set; }
+        public int NumLines { get; set; } = 1;
 
         protected Point _cursorPosition;
         protected Point _savedCursorPosition;
         protected bool _showCursor;
         //protected Character[,] m_screen;
         protected GraphicAttributes _currentAttributes;
-
+        private bool _nextNewLineIsContinuation = false;
+        
         public Size Size
         {
             get
@@ -233,11 +234,12 @@ namespace libvt100
             {
                 if (_cursorPosition != value)
                 {
-                    // add a new line if needed.
-                    if (_cursorPosition.Y >= Lines.Count)
-                    {
-                        Lines.Add(new Line() { LineNumber = 0 }); // Note no increment
-                    }
+                    ////Add a new line if needed.
+                    //if (value.Y >= Lines.Count)
+                    //{
+                    //    // Note no increment because this is due to a text wrap
+                    //    Lines.Add(new Line() { LineNumber = 0 });
+                    //}
                     _cursorPosition = value;
                 }
             }
@@ -249,7 +251,11 @@ namespace libvt100
             {
                 while (row >= Lines.Count)
                 {
-                    Lines.Add(new Line() { LineNumber = ++NumLines });
+                    // If there's no line at the current row, allocate one
+                    if (Lines.Count <= CursorPosition.Y)
+                    {
+                        Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
+                    }
                 }
                 return Lines[row];
             }
@@ -391,34 +397,68 @@ namespace libvt100
         #region IAnsiDecoderClient Implementation
         void IAnsiDecoderClient.Characters(IAnsiDecoder _sender, char[] _chars)
         {
+            //if (Lines.Count == 0)
+            //{
+            //    Lines.Add(new Line() { LineNumber = ++NumLines });
+            //}
+
             foreach (char ch in _chars)
             {
                 if (ch == '\n')
                 {
-                    // Add a new line, incrementing NumLines because this is a new "real" line
-                    Lines.Add(new Line() { LineNumber = ++NumLines });
-                    (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
+                    // If current line is new Line
+                    if (CursorPosition.Y >= Lines.Count)
+                    {
+                        // We're at a new line. 
+                        if (!_nextNewLineIsContinuation)
+                        {
+                            // We got here because a previous \n or it's the first line
+                            Lines.Add(new Line() { LineNumber = ++NumLines });
+                            _nextNewLineIsContinuation = false;
+                            (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
+                        }
+                        else
+                        {
+                            // We got here because we wrapped at the end of previous...
+                            // Like this: 0123456789\n (where width == 10)
+                            Lines.Add(new Line() { LineNumber = ++NumLines });
+                            _nextNewLineIsContinuation = false;
+                        }
+                    }
+                    else
+                    {
+                        // Move to next line; It'll be a new "real line"
+                        Lines.Add(new Line() { LineNumber = ++NumLines });
+                        _nextNewLineIsContinuation = false;
+                        (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
+                    }
                 }
                 else if (ch == '\r')
                 {
+                    // TODO: Consider what to do with this. 
                     //(this as IVT100DecoderClient).MoveCursorToBeginningOfLineBelow ( _sender, 1 );
                 }
                 else
                 {
-                    // If there's no line at the current row, allocate one
-                    if (Lines.Count <= CursorPosition.Y)
-                    {
-                        // Increment NumLines because this can only happen (?) when this is the first line of the doc
-                        Lines.Add(new Line() { LineNumber = ++NumLines });
-                    }
-
+                    // This will add a line if needed
                     if (this[CursorPosition.Y].Runs.Count == 0)
                     {
                         Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = 0 });
                     }
                     this[CursorPosition.Y].Text += ch;
                     this[CursorPosition.Y].Runs[^1].Length++;
-                    CursorForward();
+
+                    if (_cursorPosition.X + 1 >= Width)
+                    {
+                        // Wrap
+                        _nextNewLineIsContinuation = true;
+                        CursorPosition = new Point(0, _cursorPosition.Y + 1);
+                    }
+                    else
+                    {
+                        _nextNewLineIsContinuation = false;
+                        CursorForward();
+                    }
                 }
             }
         }
