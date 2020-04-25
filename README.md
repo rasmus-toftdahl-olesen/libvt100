@@ -1,4 +1,6 @@
 # libvt100
+![](https://github.com/rasmus-toftdahl-olesen/libvt100/workflows/.NET%20Core/badge.svg)
+
 A purely .net/C# library for parsing a VT100/ANSI stream
 
 When writing anything that needs to communicate with a terminal in some way it is almost always speaking some dialect of VT100 or ANSI.
