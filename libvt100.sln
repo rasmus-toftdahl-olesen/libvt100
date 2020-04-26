@@ -12,7 +12,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTests", "tests\UnitTest
 		{1207872C-AD4D-4EEE-B222-B55904B6D488} = {1207872C-AD4D-4EEE-B222-B55904B6D488}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuiDemo", "GuiDemo\GuiDemo.csproj", "{5652A677-36E3-4A57-91AD-8DD28F17B095}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GuiDemo", "GuiDemo\GuiDemo.csproj", "{5652A677-36E3-4A57-91AD-8DD28F17B095}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

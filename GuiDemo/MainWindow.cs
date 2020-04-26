@@ -1,4 +1,4 @@
-﻿using libVT100;
+﻿using libvt100;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,8 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static libVT100.Screen;
-using Screen = libVT100.Screen;
+using static libvt100.Screen;
+using Screen = libvt100.Screen;
 
 namespace GuiDemo
 {

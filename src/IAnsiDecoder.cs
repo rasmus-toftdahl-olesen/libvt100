@@ -1,4 +1,4 @@
-namespace libVT100
+namespace libvt100
 {
     public interface IAnsiDecoder : IDecoder
     {
