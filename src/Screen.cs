@@ -40,7 +40,7 @@ namespace libvt100
             BrightMagenta,
             BrightCyan,
             BrightWhite,
-            rgb
+            Rgb
         }
 
         public struct GraphicAttributes
@@ -156,14 +156,14 @@ namespace libvt100
             {
                 get
                 {
-                    if (Foreground == TextColor.rgb)
+                    if (Foreground == TextColor.Rgb)
                         return m_foregroundRgb;
                     else
                         return TextColorToColor(Foreground);
                 }
                 set
                 {
-                    Foreground = TextColor.rgb;
+                    Foreground = TextColor.Rgb;
                     m_foregroundRgb = value;
                 }
             }
@@ -172,14 +172,14 @@ namespace libvt100
             {
                 get
                 {
-                    if (Background == TextColor.rgb)
+                    if (Background == TextColor.Rgb)
                         return m_backgroundRgb;
                     else
                         return TextColorToColor(Background);
                 }
                 set
                 {
-                    Background = TextColor.rgb;
+                    Background = TextColor.Rgb;
                     m_backgroundRgb = value;
                 }
             }
