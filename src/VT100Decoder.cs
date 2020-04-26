@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
-namespace libVT100
+namespace libvt100
 {
    public class VT100Decoder : AnsiDecoder, IVT100Decoder
    {

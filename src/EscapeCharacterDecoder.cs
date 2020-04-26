@@ -3,7 +3,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Windows.Forms;
 
-namespace libVT100
+namespace libvt100
 {
     public abstract class EscapeCharacterDecoder : IDecoder
     {

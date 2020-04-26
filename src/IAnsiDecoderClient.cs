@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
 
-namespace libVT100
+namespace libvt100
 {
     public enum Direction
     {
@@ -63,6 +63,8 @@ namespace libVT100
         ForegroundNormalMagenta = 35,
         ForegroundNormalCyan = 36,
         ForegroundNormalWhite = 37,
+        /// Next arguments are 5;n or 2;r;g;b, see colors
+        ForegroundColor = 38,
         ForegroundNormalReset = 39,
         /// Set background color, normal intensity
         BackgroundNormalBlack = 40,
@@ -73,6 +75,8 @@ namespace libVT100
         BackgroundNormalMagenta = 45,
         BackgroundNormalCyan = 46,
         BackgroundNormalWhite = 47,
+        /// Next arguments are 5;n or 2;r;g;b, see colors
+        BackgroundColor = 48,
         BackgroundNormalReset = 49,
         /// Set foreground color, high intensity (aixtem)
         ForegroundBrightBlack = 90,

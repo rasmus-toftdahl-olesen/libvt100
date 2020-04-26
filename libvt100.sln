@@ -7,10 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "libvt100", "src\libvt100.cs
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "vt100render", "vt100render\vt100render.csproj", "{CEE0F154-37B5-4070-B75A-6372CB29555C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "tests\UnitTests.csproj", "{8B1E1C50-87F9-4441-B227-91317EB9CACC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTests", "tests\UnitTests.csproj", "{8B1E1C50-87F9-4441-B227-91317EB9CACC}"
 	ProjectSection(ProjectDependencies) = postProject
 		{1207872C-AD4D-4EEE-B222-B55904B6D488} = {1207872C-AD4D-4EEE-B222-B55904B6D488}
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GuiDemo", "GuiDemo\GuiDemo.csproj", "{5652A677-36E3-4A57-91AD-8DD28F17B095}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +32,10 @@ Global
 		{8B1E1C50-87F9-4441-B227-91317EB9CACC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B1E1C50-87F9-4441-B227-91317EB9CACC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B1E1C50-87F9-4441-B227-91317EB9CACC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5652A677-36E3-4A57-91AD-8DD28F17B095}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5652A677-36E3-4A57-91AD-8DD28F17B095}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5652A677-36E3-4A57-91AD-8DD28F17B095}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5652A677-36E3-4A57-91AD-8DD28F17B095}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

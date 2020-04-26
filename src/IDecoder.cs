@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Windows.Forms;
 
-namespace libVT100
+namespace libvt100
 {
     public delegate void DecoderOutputDelegate ( IDecoder _decoder, byte[] _output );
 
