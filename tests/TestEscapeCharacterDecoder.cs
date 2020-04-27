@@ -4,9 +4,20 @@ using System.Collections.Generic;
 using System.Drawing;
 using NUnit.Framework;
 using libvt100;
+using System.Threading;
 
 namespace libvt100.Tests
 {
+        public static class StringExtensions
+    {
+        public static string Repeat(this string s, int n)
+        {
+            return new StringBuilder(s.Length * n)
+                            .AppendJoin(s, new string[n + 1])
+                            .ToString();
+        }
+    }
+
     [TestFixture]
     public class TestEscapeCharacterDecoder : EscapeCharacterDecoder
     {
@@ -92,7 +103,26 @@ namespace libvt100.Tests
             AssertCommand ( 'a', "123;321;456" );
             AssertCommand ( 'b', "\"This string is part of the command\"123" );
         }
-        
+
+        /// <summary>
+        /// This attempts to test for a stack overflow caused by the recursion in ProcessCommandBuffer.
+        /// See https://github.com/rasmus-toftdahl-olesen/libvt100/issues/6
+        /// It is not really possible to test for stack overflow failures in .NET. 
+        /// Values of `iteration` above ~3000 cause the tests to abort and the `TestEscapeCharacterDecoder`
+        /// set of tests will not complete.
+        /// Values under ~3000 will succeed. 
+        /// </summary>
+        [Test]
+        public void TestStackOverFlow()
+        {
+            var iterations = 3500;
+            var line = "\x001B123mA";
+            Input(line.Repeat(iterations));
+            AssertCommand('m', "123");
+            var result = ReceivedCharacters;
+            Assert.AreEqual("A".Repeat(iterations), result);
+        }
+
         private void AssertCommand ( char _command, string _parameter )
         {
             Assert.IsNotEmpty ( m_commands );
