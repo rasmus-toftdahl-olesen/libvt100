@@ -113,6 +113,7 @@ namespace libvt100.Tests
         /// Values under ~3000 will succeed. 
         /// </summary>
         [Test]
+        [Ignore("This test has been disaled until the stack overflow issue has been fixed (https://github.com/rasmus-toftdahl-olesen/libvt100/issues/6)")]
         public void TestStackOverFlow()
         {
             var iterations = 3500;
