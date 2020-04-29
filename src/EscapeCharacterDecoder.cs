@@ -104,9 +104,6 @@ namespace libvt100
         /// Processs m_commandBuffer which is a List<byte> (of chars).
         /// </summary>
         /// 
-        // Every time ProcessCommand is called, this is left indicating 
-        // the next position to process.
-        private int m_lastAmbiguousPositionInCommandBuffer = 0;
         protected void ProcessCommandBuffer()
         {
             // We keep getting called with more data added to m_commandBuffer
