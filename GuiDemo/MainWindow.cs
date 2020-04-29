@@ -17,13 +17,22 @@ namespace GuiDemo
     public partial class MainWindow : Form
     {
 
-        Screen _screen;
+        DynamicScreen _screen;
         IAnsiDecoder _vt100 = new AnsiDecoder();
 
-        Font _font = new Font("Cascadia Code", 8, FontStyle.Regular);
+        Font _font = new Font("Consolas", 10, FontStyle.Regular);
+        StringFormat _sf = new StringFormat(StringFormat.GenericTypographic)
+        {
+            FormatFlags =  StringFormatFlags.FitBlackBox |
+                            StringFormatFlags.DisplayFormatControl | StringFormatFlags.MeasureTrailingSpaces,
+            Alignment = StringAlignment.Near,
+            LineAlignment = StringAlignment.Near,
+            Trimming = StringTrimming.None
+        };
+        int _charWidth = 0;
 
-        int _width = 100;
-        int _height = 500;
+        int _width = 120;
+        //int _height = 500;
 
         public MainWindow()
         {
@@ -31,16 +40,13 @@ namespace GuiDemo
 
             Paint += MainWindow_Paint;
 
-            
-
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            var encoding = CodePagesEncodingProvider.Instance.GetEncoding("ibm437");
 
-            _screen = new Screen(_width, _height);
-            _vt100.Encoding = CodePagesEncodingProvider.Instance.GetEncoding("ibm437");
+            _screen = new DynamicScreen(_width);
+            _vt100.Encoding = Encoding.UTF8;
             _vt100.Subscribe(_screen);
 
-            using (Stream stream = File.Open(@"..\..\..\..\tests\zv-v01d.ans", FileMode.Open))
+            using (Stream stream = File.Open(@"..\..\..\..\tests\Program.cs.ans", FileMode.Open))
             {
                 int read = 0;
                 while ((read = stream.ReadByte()) != -1)
@@ -48,39 +54,101 @@ namespace GuiDemo
                     _vt100.Input(new byte[] { (byte)read });
                 }
             }
+            _screen.CursorPosition = new Point(0, 0);
+
+            _charWidth = (int)Graphics.FromHwnd(this.Handle).MeasureString("w", _font, 100, _sf).Width;
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            if (e is null)
+            {
+                throw new ArgumentNullException(nameof(e));
+            }
+
+            base.OnKeyUp(e);
+
+            switch (e.KeyCode)
+            {
+                case Keys.Down:
+                    Invalidate(GetCursorRect());
+                    if (_screen.CursorPosition.Y < _screen.Lines.Count)
+                        (_screen as IAnsiDecoderClient).MoveCursor(null, libvt100.Direction.Down, 1);
+                    Invalidate(GetCursorRect());
+                    break;
+
+                case Keys.Up:
+                    Invalidate(GetCursorRect());
+                    if (_screen.CursorPosition.Y > 0)
+                        (_screen as IAnsiDecoderClient).MoveCursor(null, libvt100.Direction.Up, 1);
+                    Invalidate(GetCursorRect());
+                    break;
+
+                case Keys.Right:
+                    Invalidate(GetCursorRect());
+                    if (_screen.CursorPosition.Y < _screen.Width)
+                        (_screen as IAnsiDecoderClient).MoveCursor(null, libvt100.Direction.Forward, 1);
+                    Invalidate(GetCursorRect());
+                    break;
+
+                case Keys.Left:
+                    Invalidate(GetCursorRect());
+                    if (_screen.CursorPosition.X > 0)
+                        (_screen as IAnsiDecoderClient).MoveCursor(null, libvt100.Direction.Backward, 1);
+                    Invalidate(GetCursorRect());
+                    break;
+            }
         }
 
         private void MainWindow_Paint(object sender, PaintEventArgs e)
         {
-            for (int y = 0; y < _height; ++y)
+            int yPos = 0;
+            foreach (var line in _screen.Lines)
             {
-                for (int x = 0; x < _width; ++x)
+                int xPos = 0;
+                foreach (var run in line.Runs)
                 {
-                    Character character = _screen[x, y];
+                    System.Drawing.Font font = _font;
+                    //if (run.Attributes.Bold)
+                    //{
+                    //    if (run.Attributes.Italic)
+                    //    {
+                    //        font = new System.Drawing.Font(_font.FontFamily, _font.SizeInPoints, FontStyle.Bold | FontStyle.Italic, GraphicsUnit.Point);
+                    //    }
+                    //    else
+                    //    {
+                    //        font = new System.Drawing.Font(_font.FontFamily, _font.SizeInPoints, FontStyle.Bold, GraphicsUnit.Point);
+                    //    }
+                    //}
+                    //else if (run.Attributes.Italic)
+                    //{
+                    //    font = new System.Drawing.Font(_font.FontFamily, _font.SizeInPoints, FontStyle.Italic, GraphicsUnit.Point);
+                    //}
+                    var fg = Color.Black;
+                    if (run.Attributes.ForegroundColor != Color.White)
+                        fg = run.Attributes.ForegroundColor;
 
-                    Rectangle rect = new Rectangle(_font.Height * x, _font.Height * y, _font.Height, _font.Height);
-                    e.Graphics.FillRectangle(new SolidBrush(character.Attributes.BackgroundColor), rect);
+                    var text = line.Text[run.Start..(run.Start + run.Length)];
+                    e.Graphics.DrawString(text, font, new SolidBrush(fg), xPos, yPos, _sf);
+                    xPos += _charWidth * text.Length;
+                }
+                yPos += (int)Math.Round(_font.GetHeight());
 
-                    Font font = _font;
-                    if (character.Attributes.Bold)
-                    {
-                        if (character.Attributes.Italic)
-                        {
-                            font = new Font(_font.FontFamily, _font.Size, FontStyle.Bold | FontStyle.Italic);
-                        }
-                        else
-                        {
-                            font = new Font(_font.FontFamily, _font.Size, FontStyle.Bold);
-                        }
-                    }
-                    else if (character.Attributes.Italic)
-                    {
-                        font = new Font(_font.FontFamily, _font.Size, FontStyle.Italic);
-                    }
-                    String text = new String(character.Char, 1);
-                    e.Graphics.DrawString(text, font, new SolidBrush(character.Attributes.ForegroundColor), rect);
+                if (_screen.CursorPosition.Y >= 0 && _screen.CursorPosition.Y < _screen.Lines.Count)
+                {
+                    e.Graphics.DrawRectangle(Pens.Blue, GetCursorRect(e.Graphics));
                 }
             }
+        }
+
+        private Rectangle GetCursorRect(Graphics g = null)
+        {
+            using Bitmap bitmap = new Bitmap(1, 1);
+            if (g == null)
+            {
+                g = Graphics.FromImage(bitmap);
+            }
+            return new Rectangle(_screen.CursorPosition.X * _charWidth, _screen.CursorPosition.Y * (int)Math.Round(_font.GetHeight()), _charWidth, (int)Math.Round(_font.GetHeight()));
         }
     }
 }

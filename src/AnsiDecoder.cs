@@ -306,6 +306,8 @@ namespace libvt100
 
       protected override bool IsValidOneCharacterCommand( char _command )
       {
+         // Esc=	Set alternate keypad mode	DECKPAM
+         // Esc>    Set numeric keypad mode DECKPNM
          return _command == '=' || _command == '>';
       }
       

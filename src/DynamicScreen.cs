@@ -184,7 +184,8 @@ namespace libvt100
         //protected Character[,] m_screen;
         protected GraphicAttributes _currentAttributes;
         private bool _nextNewLineIsContinuation = false;
-        
+        private bool _newRun;
+
         public Size Size
         {
             get
@@ -441,10 +442,13 @@ namespace libvt100
                 else
                 {
                     // This will add a line if needed
-                    if (this[CursorPosition.Y].Runs.Count == 0)
+                    if (this[CursorPosition.Y].Runs.Count == 0 || _newRun)
                     {
-                        Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = 0 });
+                        int start = this[CursorPosition.Y].Runs.Count == 0 ? 0 : Lines[CursorPosition.Y].Runs.Sum(r => r.Length);
+                        Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = start });
+                        _newRun = false;
                     }
+
                     this[CursorPosition.Y].Text += ch;
                     this[CursorPosition.Y].Runs[^1].Length++;
 
@@ -800,16 +804,8 @@ namespace libvt100
 
             }
 
-            // This is a new Run. If there's no Line, allocate one
-            if (Lines.Count <= CursorPosition.Y)
-            {
-                // Increment NumLines because this can only happen (?) when this is the first line of the doc
-                Lines.Add(new Line() { LineNumber = ++NumLines });
-            }
-
-            // Add a new Run to the current line
-            int start = Lines[CursorPosition.Y].Runs.Sum(r => r.Length);
-            Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = start });
+            // Indicate we need to start a new run if more content follows this
+            _newRun = true;
         }
         #endregion
 
