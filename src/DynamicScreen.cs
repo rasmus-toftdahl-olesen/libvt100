@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,7 @@ namespace libvt100
             public int Start { get; set; }
             public int Length { get; set; }
             public GraphicAttributes Attributes { get; set; }
+            public bool HasTab { get; set; }
         }
 
         /// <summary>
@@ -186,6 +188,8 @@ namespace libvt100
         private bool _nextNewLineIsContinuation = false;
         private bool _newRun;
 
+        public int TabSpaces { get; set; } = 4;
+
         public Size Size
         {
             get
@@ -250,22 +254,24 @@ namespace libvt100
         {
             get
             {
-                while (row >= Lines.Count)
-                {
-                    // If there's no line at the current row, allocate one
-                    if (Lines.Count <= CursorPosition.Y)
-                    {
-                        Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
-                    }
-                }
+                CheckRow(row);
+                //while (row >= Lines.Count)
+                //{
+                //    // If there's no line at the current row, allocate one
+                //    if (Lines.Count <= CursorPosition.Y)
+                //    {
+                //        Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
+                //    }
+                //}
                 return Lines[row];
             }
             set
             {
-                while (row >= Lines.Count)
-                {
-                    Lines.Add(new Line() { LineNumber = ++NumLines });
-                }
+                CheckRow(row);
+                //while (row >= Lines.Count)
+                //{
+                //    Lines.Add(new Line() { LineNumber = ++NumLines });
+                //}
 
                 Lines.RemoveAt(row);
                 Lines.Insert(row, value);
@@ -407,41 +413,81 @@ namespace libvt100
             {
                 if (ch == '\n')
                 {
-                    // If current line is new Line
-                    if (CursorPosition.Y >= Lines.Count)
+                    if (CursorPosition.Y < Lines.Count || !_nextNewLineIsContinuation)
                     {
-                        // We're at a new line. 
-                        if (!_nextNewLineIsContinuation)
-                        {
-                            // We got here because a previous \n or it's the first line
-                            Lines.Add(new Line() { LineNumber = ++NumLines });
-                            _nextNewLineIsContinuation = false;
-                            (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
-                        }
-                        else
-                        {
-                            // We got here because we wrapped at the end of previous...
-                            // Like this: 0123456789\n (where width == 10)
-                            Lines.Add(new Line() { LineNumber = ++NumLines });
-                            _nextNewLineIsContinuation = false;
-                        }
+                        Lines.Add(new Line() { LineNumber = ++NumLines });
+                        (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
                     }
                     else
                     {
-                        // Move to next line; It'll be a new "real line"
                         Lines.Add(new Line() { LineNumber = ++NumLines });
-                        _nextNewLineIsContinuation = false;
-                        (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
                     }
+                    _nextNewLineIsContinuation = false;
                 }
                 else if (ch == '\r')
                 {
                     // TODO: Consider what to do with this. 
                     //(this as IVT100DecoderClient).MoveCursorToBeginningOfLineBelow ( _sender, 1 );
                 }
+                else if (ch == '\t' && TabSpaces > 0)
+                {
+                    var colsToNextTabStop = 0;
+
+                    // Spec: Moves cursor to the next tab stop, or to the right margin if there are no more tab stops.
+                    // Note, this[CursorPostion.Y] will add a line if needed
+                    // If there's no line at the current row, allocate one
+                    Debug.Assert(Lines.Count >= CursorPosition.Y);
+                    if (Lines.Count == CursorPosition.Y)
+                    {
+                        Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
+                    }
+
+                    if (this[CursorPosition.Y].Runs.Count == 0 
+                        || _newRun 
+                        || !this[CursorPosition.Y].Runs[^1].HasTab)
+                    //    || (this[CursorPosition.Y].Runs[^1].Tab && this[CursorPosition.Y].Runs[^1].Length == TabSpaces))
+                    {
+                        int start = this[CursorPosition.Y].Runs.Count == 0 ? 0 : Lines[CursorPosition.Y].Runs.Sum(r => r.Length);
+                        Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = start, HasTab = true });
+
+                        // how many columns to the right is the next tabstop or right margin?
+                        colsToNextTabStop = TabSpaces - (start % TabSpaces);
+                    }
+                    else
+                    {
+                        colsToNextTabStop = TabSpaces - this[CursorPosition.Y].Runs[^1].Length;
+                    }
+                    while (colsToNextTabStop > 0)
+                    {
+                        this[CursorPosition.Y].Text += " "; ;
+                        this[CursorPosition.Y].Runs[^1].Length++;
+                        colsToNextTabStop--;
+
+                        if (CursorPosition.X + 1 >= Width)
+                        {
+                            // Whoah. There is no next tab stop, just the right margin. We're done.
+                            _nextNewLineIsContinuation = true;
+                            CursorPosition = new Point(0, _cursorPosition.Y + 1);
+                            break;
+                        }
+                        else
+                        {
+                            _nextNewLineIsContinuation = false;
+                            CursorForward();
+                        }
+                    }
+                    _newRun = true;
+
+                }
                 else
                 {
-                    // This will add a line if needed
+                    // If there's no line at the current row, allocate one
+                    Debug.Assert(Lines.Count >= CursorPosition.Y);
+                    if (Lines.Count == CursorPosition.Y)
+                    {
+                        Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
+                    }
+
                     if (this[CursorPosition.Y].Runs.Count == 0 || _newRun)
                     {
                         int start = this[CursorPosition.Y].Runs.Count == 0 ? 0 : Lines[CursorPosition.Y].Runs.Sum(r => r.Length);
@@ -452,7 +498,7 @@ namespace libvt100
                     this[CursorPosition.Y].Text += ch;
                     this[CursorPosition.Y].Runs[^1].Length++;
 
-                    if (_cursorPosition.X + 1 >= Width)
+                    if (CursorPosition.X + 1 >= Width)
                     {
                         // Wrap
                         _nextNewLineIsContinuation = true;
