@@ -32,12 +32,13 @@
             // 
             // MainWindow
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(714, 861);
-            this.Font = new System.Drawing.Font("Consolas", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.ForeColor = System.Drawing.Color.Black;
+            this.BackColor = System.Drawing.Color.Black;
+            this.ClientSize = new System.Drawing.Size(816, 919);
+            this.Font = new System.Drawing.Font("Delugia Nerd Font", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.ForeColor = System.Drawing.Color.White;
+            this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Name = "MainWindow";
             this.Text = "libvt100 Ansi File Viewer";
             this.Resize += new System.EventHandler(this.MainWindow_Resize);

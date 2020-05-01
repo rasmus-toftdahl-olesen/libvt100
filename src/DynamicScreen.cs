@@ -1,28 +1,28 @@
-﻿using System;
+﻿// Part of https://github.com/rasmus-toftdahl-olesen/libvt100
+// The libvt100 library is licensed under the Apache License version 2.0:
+// http://www.apache.org/licenses/LICENSE-2.0
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using libvt100;
 using static libvt100.Screen;
 
-namespace libvt100
-{
+namespace libvt100 {
     /// <summary>
     /// This is a version of libvt100.Screen that supports:
     /// - Dynamic height - grows as lines are added
     /// - Runs of CharacterAttributes enabling optimized painting
     /// - Tracks line #s of \n terminated lines (original, not wrapped lines)
     /// </summary>
-    public class DynamicScreen : IAnsiDecoderClient, IEnumerable<Character>
-    {
+    public class DynamicScreen : IAnsiDecoderClient, IEnumerable<Character> {
         /// <summary>
         /// A run of text encoded with a set of Ansi SGR parameters
         /// </summary>  
-        public class Run
-        {
+        public class Run {
             public int Start { get; set; }
             public int Length { get; set; }
             public GraphicAttributes Attributes { get; set; }
@@ -34,8 +34,7 @@ namespace libvt100
         /// Helps keep track of which lines are 'real' and thus get a printed line number
         /// and which are the result of wrapping.
         /// </summary>
-        public class Line
-        {
+        public class Line {
             public string Text { get; set; } = string.Empty;
             /// <summary>
             /// The line number that will be printed next to the line.
@@ -44,68 +43,58 @@ namespace libvt100
             public int LineNumber { get; set; }
             public List<Run> Runs { get; set; }
 
-            public Line()
-            {
+            public Line() {
                 Runs = new List<Run>(); // contents of this part of the line
             }
 
             /// <summary>
             /// Gets the attributed character found at the specified column in this line.
             /// </summary>
-            public Character this[int col]
-            {
-                get
-                {
+            public Character this[int col] {
+                get {
                     return CharacterFromColumn(col);
                 }
-                set
-                {
+                set {
                     // See if this makes the line longer
-                    if (col >= Text.Length)
-                    {
+                    if (col >= Text.Length) {
                         // TODO: Modify Character to support IsEqual and extend run
 
                         // Pad with spaces
-                        Runs.Add(new Run() { Start = Runs.Sum(r => r.Length), Length = col - Text.Length });
-                        Text += new string(' ', col - Text.Length);
+                        if (col - Text.Length > 0) {
+                            Runs.Add(new Run() { Start = Runs.Sum(r => r.Length), Length = col - Text.Length });
+                            Text += new string(' ', col - Text.Length);
+                        }
 
                         // Start a new run
                         Runs.Add(new Run() { Attributes = value.Attributes, Length = 1, Start = col });
                         Text += value.Char;
                     }
-                    else
-                    {
+                    else {
                         // Setting an existing value
                         CheckColumn(col);
                         var run = 0;
-                        for (; run < Runs.Count && (col - Runs.ToArray()[0..(run + 1)].Sum(r => r.Length)) >= 0; run++)
-                        {
+                        for (; run < Runs.Count && (col - Runs.ToArray()[0..(run + 1)].Sum(r => r.Length)) >= 0; run++) {
                         }
 
-                        if (run > Runs.Count)
-                        {
+                        if (run > Runs.Count) {
                             throw new ArgumentOutOfRangeException($"The run ({run}) is larger than the number of runs ({Runs.Count})");
                         }
 
-                        if (Runs[run].Length == 1)
-                        {
+                        if (Runs[run].Length == 1) {
                             // Just overwrite it
                             Runs[run].Attributes = value.Attributes;
                             var sb = new StringBuilder(Text);
                             sb[col] = value.Char;
                             Text = sb.ToString();
                         }
-                        else
-                        {
+                        else {
                             var newRun = new Run() { Attributes = value.Attributes, Length = 1, Start = col };
-                            if (col == 0)
-                            {
+                            if (col == 0) {
                                 Runs[run].Length -= 1;
                                 Runs[run].Start++;
                                 Runs.Insert(0, newRun);
                             }
-                            else
-                            {
+                            else {
                                 // Need to split this run into two and insert a new one between
                                 var splitStart = Runs.ToArray()[0..(run + 1)].Sum(r => r.Length) - col;
                                 var splitRun = new Run() { Attributes = Runs[run].Attributes, Length = splitStart - 1, Start = col + 1 };
@@ -124,47 +113,35 @@ namespace libvt100
             }
 
             /// <summary>
-            /// Returns the Run that holds the chracter at column col
+            /// Returns the Run that holds the chracter at column col.
             /// </summary>
             /// <param name="col"></param>
             /// <returns></returns>
-            public Run RunFromColumn(int col)
-            {
-                CheckColumn(col);
-                var run = 0;
-                for (; run < Runs.Count && (col - Runs.ToArray()[0..(run + 1)].Sum(r => r.Length)) >= 0; run++)
-                {
+            public Run RunFromColumn(int col) {
+                if (Runs.Count == 0 || col >= Text.Length) {
+                    return null;
                 }
 
-                if (run >= Runs.Count)
-                {
+                var run = 0;
+                for (; run < Runs.Count && (col - Runs.ToArray()[0..(run + 1)].Sum(r => r.Length)) >= 0; run++) ;
+
+                if (run >= Runs.Count) {
                     throw new ArgumentOutOfRangeException($"The run ({run}) is larger than the number of runs ({Runs.Count})");
                 }
 
                 return Runs[run];
             }
 
-            public Character CharacterFromColumn(int col)
-            {
-                if (col < Text.Length)
-                {
-                    var run = 0;
-                    for (; run < Runs.Count && (col - Runs.ToArray()[0..(run + 1)].Sum(r => r.Length)) > 0;)
-                    {
-                        run++;
-                    }
-
-                    if (run < Runs.Count)
-                        return new Character(Text[col]) { Attributes = Runs[run].Attributes };
+            public Character CharacterFromColumn(int col) {
+                var run = RunFromColumn(col);
+                if (run != null) {
+                    return new Character((col < Text.Length) ? Text[col] : (char)0) { Attributes = run.Attributes };
                 }
-
-                return null; // new Character(' ');  
+                return null;
             }
 
-            protected void CheckColumn(int column)
-            {
-                if (column >= Text.Length)
-                {
+            protected void CheckColumn(int column) {
+                if (column >= Text.Length) {
                     throw new ArgumentOutOfRangeException($"The column number ({column}) is larger than the width ({Text.Length})");
                 }
             }
@@ -190,55 +167,25 @@ namespace libvt100
 
         public int TabSpaces { get; set; } = 4;
 
-        public Size Size
-        {
-            get
-            {
-                return new Size(Lines.Count, Width);
-            }
-            set
-            {
-                if (Lines.Count == 0 || value.Width != Width || value.Height != Height)
-                {
-                    for (int y = 0; y < Height; ++y)
-                    {
-                        this[y] = new Line();
-                    }
-                    CursorPosition = new Point(0, 0);
-                }
-                else
-                {
-                    // TODO: Expando
-                }
-            }
-        }
-
         // TODO: Expando
         public int Width { get; set; }
 
-        public int Height
-        {
-            get
-            {
+        public int Height {
+            get {
                 return Lines.Count;
             }
-            set
-            {
+            set {
                 // TODO: Expando
 
             }
         }
 
-        public Point CursorPosition
-        {
-            get
-            {
+        public Point CursorPosition {
+            get {
                 return _cursorPosition;
             }
-            set
-            {
-                if (_cursorPosition != value)
-                {
+            set {
+                if (_cursorPosition != value) {
                     ////Add a new line if needed.
                     //if (value.Y >= Lines.Count)
                     //{
@@ -250,10 +197,8 @@ namespace libvt100
             }
         }
 
-        public Line this[int row]
-        {
-            get
-            {
+        public Line this[int row] {
+            get {
                 CheckRow(row);
                 //while (row >= Lines.Count)
                 //{
@@ -265,8 +210,7 @@ namespace libvt100
                 //}
                 return Lines[row];
             }
-            set
-            {
+            set {
                 CheckRow(row);
                 //while (row >= Lines.Count)
                 //{
@@ -279,102 +223,80 @@ namespace libvt100
             }
         }
 
-        public Character this[int column, int row]
-        {
-            get
-            {
+        public Character this[int column, int row] {
+            get {
+                CheckColumn(column);
                 return this[row][column];
 
             }
-            set
-            {
+            set {
+                CheckColumn(column);
                 this[row][column] = value;
             }
         }
 
-        public DynamicScreen(int width)
-        {
+        public DynamicScreen(int width) {
             Width = width;
             _savedCursorPosition = Point.Empty;
             _currentAttributes.Reset();
         }
 
-        protected void CheckColumnRow(int column, int row)
-        {
+        protected void CheckColumnRow(int column, int row) {
             CheckColumn(column);
             CheckRow(row);
         }
 
-        protected void CheckColumn(int column)
-        {
-            if (column >= Width)
-            {
+        protected void CheckColumn(int column) {
+            if (column >= Width) {
                 throw new ArgumentOutOfRangeException($"The column number ({column}) is larger than the width ({Width})");
             }
         }
 
-        protected void CheckRow(int row)
-        {
-            if (row >= Lines.Count)
-            {
+        protected void CheckRow(int row) {
+            if (row >= Lines.Count) {
                 throw new ArgumentOutOfRangeException($"The row number ({row}) is larger than the number of lines ({Lines.Count})");
             }
         }
 
-        public void CursorForward()
-        {
-            if (_cursorPosition.X + 1 >= Width)
-            {
+        public void CursorForward() {
+            if (_cursorPosition.X + 1 >= Width) {
                 CursorPosition = new Point(0, _cursorPosition.Y + 1);
             }
-            else
-            {
+            else {
                 CursorPosition = new Point(_cursorPosition.X + 1, _cursorPosition.Y);
             }
         }
 
-        public void CursorBackward()
-        {
-            if (_cursorPosition.X - 1 < 0)
-            {
+        public void CursorBackward() {
+            if (_cursorPosition.X - 1 < 0) {
                 CursorPosition = new Point(Width - 1, _cursorPosition.Y - 1);
             }
-            else
-            {
+            else {
                 CursorPosition = new Point(_cursorPosition.X - 1, _cursorPosition.Y);
             }
         }
 
-        public void CursorDown()
-        {
+        public void CursorDown() {
             CursorPosition = new Point(_cursorPosition.X, _cursorPosition.Y + 1);
         }
 
-        public void CursorUp()
-        {
-            if (_cursorPosition.Y - 1 < 0)
-            {
+        public void CursorUp() {
+            if (_cursorPosition.Y - 1 < 0) {
                 throw new Exception("Can not move further up!");
             }
             CursorPosition = new Point(_cursorPosition.X, _cursorPosition.Y - 1);
         }
 
-        public override String ToString()
-        {
+        public override String ToString() {
             StringBuilder builder = new StringBuilder();
-            for (int y = 0; y < Lines.Count; ++y)
-            {
-                for (int x = 0; x < Width; ++x)
-                {
+            for (int y = 0; y < Lines.Count; ++y) {
+                for (int x = 0; x < Width; ++x) {
                     var c = this[x, y];
-                    if (c != null)
-                    {
-                        if (c.Char > 127)
-                        {
+                    if (c != null) {
+                        if (c.Char > 127) {
                             builder.Append('!');
                         }
-                        else
-                        {
+                        else {
                             builder.Append(c.Char);
                         }
                     }
@@ -385,93 +307,70 @@ namespace libvt100
             return builder.ToString();
         }
 
-        IEnumerator<Character> IEnumerable<Character>.GetEnumerator()
-        {
-            for (int y = 0; y < Lines.Count; ++y)
-            {
-                for (int x = 0; x < Width; ++x)
-                {
+        IEnumerator<Character> IEnumerable<Character>.GetEnumerator() {
+            for (int y = 0; y < Lines.Count; ++y) {
+                for (int x = 0; x < Width; ++x) {
                     yield return this.Lines[y][x]; // BUGBUG: if x > all the Runs in Line[y] this will barf
                 }
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
+        IEnumerator IEnumerable.GetEnumerator() {
             return (this as IEnumerable<Character>).GetEnumerator();
         }
 
         #region IAnsiDecoderClient Implementation
-        void IAnsiDecoderClient.Characters(IAnsiDecoder _sender, char[] _chars)
-        {
-            //if (Lines.Count == 0)
-            //{
-            //    Lines.Add(new Line() { LineNumber = ++NumLines });
-            //}
-
-            foreach (char ch in _chars)
-            {
-                if (ch == '\n')
-                {
-                    if (CursorPosition.Y < Lines.Count || !_nextNewLineIsContinuation)
-                    {
+        void IAnsiDecoderClient.Characters(IAnsiDecoder _sender, char[] _chars) {
+            foreach (char ch in _chars) {
+                if (ch == '\n') {
+                    if (CursorPosition.Y < Lines.Count || !_nextNewLineIsContinuation) {
                         Lines.Add(new Line() { LineNumber = ++NumLines });
                         (this as IAnsiDecoderClient).MoveCursorToBeginningOfLineBelow(_sender, 1);
                     }
-                    else
-                    {
+                    else {
                         Lines.Add(new Line() { LineNumber = ++NumLines });
                     }
                     _nextNewLineIsContinuation = false;
                 }
-                else if (ch == '\r')
-                {
+                else if (ch == '\r') {
                     // TODO: Consider what to do with this. 
                     //(this as IVT100DecoderClient).MoveCursorToBeginningOfLineBelow ( _sender, 1 );
                 }
-                else if (ch == '\t' && TabSpaces > 0)
-                {
+                else if (ch == '\t' && TabSpaces > 0) {
                     var colsToNextTabStop = 0;
 
                     // Spec: Moves cursor to the next tab stop, or to the right margin if there are no more tab stops.
                     // Note, this[CursorPostion.Y] will add a line if needed
                     // If there's no line at the current row, allocate one
                     Debug.Assert(Lines.Count >= CursorPosition.Y);
-                    if (Lines.Count == CursorPosition.Y)
-                    {
+                    if (Lines.Count == CursorPosition.Y) {
                         Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
                     }
 
-                    if (this[CursorPosition.Y].Runs.Count == 0 
-                        || _newRun 
-                        || !this[CursorPosition.Y].Runs[^1].HasTab)
-                    //    || (this[CursorPosition.Y].Runs[^1].Tab && this[CursorPosition.Y].Runs[^1].Length == TabSpaces))
-                    {
+                    if (this[CursorPosition.Y].Runs.Count == 0
+                        || _newRun
+                        || !this[CursorPosition.Y].Runs[^1].HasTab) {
                         int start = this[CursorPosition.Y].Runs.Count == 0 ? 0 : Lines[CursorPosition.Y].Runs.Sum(r => r.Length);
                         Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = start, HasTab = true });
 
                         // how many columns to the right is the next tabstop or right margin?
                         colsToNextTabStop = TabSpaces - (start % TabSpaces);
                     }
-                    else
-                    {
+                    else {
                         colsToNextTabStop = TabSpaces - this[CursorPosition.Y].Runs[^1].Length;
                     }
-                    while (colsToNextTabStop > 0)
-                    {
+                    while (colsToNextTabStop > 0) {
                         this[CursorPosition.Y].Text += " "; ;
                         this[CursorPosition.Y].Runs[^1].Length++;
                         colsToNextTabStop--;
 
-                        if (CursorPosition.X + 1 >= Width)
-                        {
+                        if (CursorPosition.X + 1 >= Width) {
                             // Whoah. There is no next tab stop, just the right margin. We're done.
                             _nextNewLineIsContinuation = true;
                             CursorPosition = new Point(0, _cursorPosition.Y + 1);
                             break;
                         }
-                        else
-                        {
+                        else {
                             _nextNewLineIsContinuation = false;
                             CursorForward();
                         }
@@ -479,17 +378,14 @@ namespace libvt100
                     _newRun = true;
 
                 }
-                else
-                {
+                else {
                     // If there's no line at the current row, allocate one
                     Debug.Assert(Lines.Count >= CursorPosition.Y);
-                    if (Lines.Count == CursorPosition.Y)
-                    {
+                    if (Lines.Count == CursorPosition.Y) {
                         Lines.Add(new Line() { LineNumber = (_nextNewLineIsContinuation ? 0 : ++NumLines) });
                     }
 
-                    if (this[CursorPosition.Y].Runs.Count == 0 || _newRun)
-                    {
+                    if (this[CursorPosition.Y].Runs.Count == 0 || _newRun) {
                         int start = this[CursorPosition.Y].Runs.Count == 0 ? 0 : Lines[CursorPosition.Y].Runs.Sum(r => r.Length);
                         Lines[CursorPosition.Y].Runs.Add(new Run() { Attributes = _currentAttributes, Start = start });
                         _newRun = false;
@@ -498,14 +394,12 @@ namespace libvt100
                     this[CursorPosition.Y].Text += ch;
                     this[CursorPosition.Y].Runs[^1].Length++;
 
-                    if (CursorPosition.X + 1 >= Width)
-                    {
+                    if (CursorPosition.X + 1 >= Width) {
                         // Wrap
                         _nextNewLineIsContinuation = true;
                         CursorPosition = new Point(0, _cursorPosition.Y + 1);
                     }
-                    else
-                    {
+                    else {
                         _nextNewLineIsContinuation = false;
                         CursorForward();
                     }
@@ -513,52 +407,43 @@ namespace libvt100
             }
         }
 
-        void IAnsiDecoderClient.SaveCursor(IAnsiDecoder _sernder)
-        {
+        void IAnsiDecoderClient.SaveCursor(IAnsiDecoder _sernder) {
             _savedCursorPosition = _cursorPosition;
         }
 
-        void IAnsiDecoderClient.RestoreCursor(IAnsiDecoder _sender)
-        {
+        void IAnsiDecoderClient.RestoreCursor(IAnsiDecoder _sender) {
             CursorPosition = _savedCursorPosition;
         }
 
-        Size IAnsiDecoderClient.GetSize(IAnsiDecoder _sender)
-        {
-            return Size;
+        Size IAnsiDecoderClient.GetSize(IAnsiDecoder _sender) {
+            return new Size(Width, Height);
         }
 
-        void IAnsiDecoderClient.MoveCursor(IAnsiDecoder _sender, Direction _direction, int _amount)
-        {
-            switch (_direction)
-            {
+        void IAnsiDecoderClient.MoveCursor(IAnsiDecoder _sender, Direction _direction, int _amount) {
+            switch (_direction) {
                 case Direction.Up:
-                    while (_amount > 0)
-                    {
+                    while (_amount > 0) {
                         CursorUp();
                         _amount--;
                     }
                     break;
 
                 case Direction.Down:
-                    while (_amount > 0)
-                    {
+                    while (_amount > 0) {
                         CursorDown();
                         _amount--;
                     }
                     break;
 
                 case Direction.Forward:
-                    while (_amount > 0)
-                    {
+                    while (_amount > 0) {
                         CursorForward();
                         _amount--;
                     }
                     break;
 
                 case Direction.Backward:
-                    while (_amount > 0)
-                    {
+                    while (_amount > 0) {
                         CursorBackward();
                         _amount--;
                     }
@@ -566,83 +451,67 @@ namespace libvt100
             }
         }
 
-        void IAnsiDecoderClient.MoveCursorToBeginningOfLineBelow(IAnsiDecoder _sender, int _lineNumberRelativeToCurrentLine)
-        {
+        void IAnsiDecoderClient.MoveCursorToBeginningOfLineBelow(IAnsiDecoder _sender, int _lineNumberRelativeToCurrentLine) {
             _cursorPosition.X = 0;
-            while (_lineNumberRelativeToCurrentLine > 0)
-            {
+            while (_lineNumberRelativeToCurrentLine > 0) {
                 CursorDown();
                 _lineNumberRelativeToCurrentLine--;
             }
         }
 
-        void IAnsiDecoderClient.MoveCursorToBeginningOfLineAbove(IAnsiDecoder _sender, int _lineNumberRelativeToCurrentLine)
-        {
+        void IAnsiDecoderClient.MoveCursorToBeginningOfLineAbove(IAnsiDecoder _sender, int _lineNumberRelativeToCurrentLine) {
             _cursorPosition.X = 0;
-            while (_lineNumberRelativeToCurrentLine > 0)
-            {
+            while (_lineNumberRelativeToCurrentLine > 0) {
                 CursorUp();
                 _lineNumberRelativeToCurrentLine--;
             }
         }
 
-        void IAnsiDecoderClient.MoveCursorToColumn(IAnsiDecoder _sender, int _columnNumber)
-        {
+        void IAnsiDecoderClient.MoveCursorToColumn(IAnsiDecoder _sender, int _columnNumber) {
             CheckColumnRow(_columnNumber, _cursorPosition.Y);
 
             CursorPosition = new Point(_columnNumber, _cursorPosition.Y);
         }
 
-        void IAnsiDecoderClient.MoveCursorTo(IAnsiDecoder _sender, Point _position)
-        {
+        void IAnsiDecoderClient.MoveCursorTo(IAnsiDecoder _sender, Point _position) {
             CheckColumnRow(_position.X, _position.Y);
 
             CursorPosition = _position;
         }
 
-        void IAnsiDecoderClient.ClearScreen(IAnsiDecoder _sender, ClearDirection _direction)
-        {
+        void IAnsiDecoderClient.ClearScreen(IAnsiDecoder _sender, ClearDirection _direction) {
         }
 
-        void IAnsiDecoderClient.ClearLine(IAnsiDecoder _sender, ClearDirection _direction)
-        {
-            switch (_direction)
-            {
+        void IAnsiDecoderClient.ClearLine(IAnsiDecoder _sender, ClearDirection _direction) {
+            switch (_direction) {
                 case ClearDirection.Forward:
-                    for (int x = _cursorPosition.X; x < Width; ++x)
-                    {
+                    for (int x = _cursorPosition.X; x < Width; ++x) {
                         this[x, _cursorPosition.Y].Char = ' ';
                     }
                     break;
 
                 case ClearDirection.Backward:
-                    for (int x = _cursorPosition.X; x >= 0; --x)
-                    {
+                    for (int x = _cursorPosition.X; x >= 0; --x) {
                         this[x, _cursorPosition.Y].Char = ' ';
                     }
                     break;
 
                 case ClearDirection.Both:
-                    for (int x = 0; x < Width; ++x)
-                    {
+                    for (int x = 0; x < Width; ++x) {
                         this[x, _cursorPosition.Y].Char = ' ';
                     }
                     break;
             }
         }
 
-        void IAnsiDecoderClient.ScrollPageUpwards(IAnsiDecoder _sender, int _linesToScroll)
-        {
+        void IAnsiDecoderClient.ScrollPageUpwards(IAnsiDecoder _sender, int _linesToScroll) {
         }
 
-        void IAnsiDecoderClient.ScrollPageDownwards(IAnsiDecoder _sender, int _linesToScroll)
-        {
+        void IAnsiDecoderClient.ScrollPageDownwards(IAnsiDecoder _sender, int _linesToScroll) {
         }
 
-        void IAnsiDecoderClient.ModeChanged(IAnsiDecoder _sender, AnsiMode _mode)
-        {
-            switch (_mode)
-            {
+        void IAnsiDecoderClient.ModeChanged(IAnsiDecoder _sender, AnsiMode _mode) {
+            switch (_mode) {
                 case AnsiMode.HideCursor:
                     _showCursor = false;
                     break;
@@ -653,17 +522,13 @@ namespace libvt100
             }
         }
 
-        Point IAnsiDecoderClient.GetCursorPosition(IAnsiDecoder _sender)
-        {
+        Point IAnsiDecoderClient.GetCursorPosition(IAnsiDecoder _sender) {
             return new Point(_cursorPosition.X + 1, _cursorPosition.Y + 1);
         }
 
-        void IAnsiDecoderClient.SetGraphicRendition(IAnsiDecoder _sender, GraphicRendition[] _commands)
-        {
-            for (var i = 0; i < _commands.Length; i++)
-            {
-                switch (_commands[i])
-                {
+        void IAnsiDecoderClient.SetGraphicRendition(IAnsiDecoder _sender, GraphicRendition[] _commands) {
+            for (var i = 0; i < _commands.Length; i++) {
+                switch (_commands[i]) {
                     case GraphicRendition.Reset:
                         _currentAttributes.Reset();
                         break;
@@ -686,8 +551,7 @@ namespace libvt100
                         _currentAttributes.Blink = Blink.Rapid;
                         break;
                     case GraphicRendition.Positive:
-                    case GraphicRendition.Inverse:
-                        {
+                    case GraphicRendition.Inverse: {
                             TextColor tmp = _currentAttributes.Foreground;
                             _currentAttributes.Foreground = _currentAttributes.Background;
                             _currentAttributes.Background = tmp;
@@ -855,8 +719,7 @@ namespace libvt100
         }
         #endregion
 
-        void IDisposable.Dispose()
-        {
+        void IDisposable.Dispose() {
             //m_screen = null;
         }
     }
